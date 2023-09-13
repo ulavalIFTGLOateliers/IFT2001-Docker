@@ -1,0 +1,34 @@
+services:
+  # Conteur de la base de donnees
+  # On retrouve les memes parametres que dans la commande `docker run`
+  db:
+    # On specifie l'image que l'on veut lancer
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    expose:
+      - 5432
+    volumes:
+      - db:/var/lib/postgresql/data
+  # Serveur Rust
+  api:
+    # Va construire le Dockerfile du repertoire ou se trouve le docker-compose.yml
+    build: .
+    # Construit le service db avant api
+    depends_on:
+      - db
+    ports:
+      - 8081:8081
+    # L'URL de la base de donnee change, plutot que @localhost
+    # docker-compose rend db accessible sous le nom @db
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db
+    # On attend que la base de donnes soit prete avant de lancer le serveur
+    entrypoint: bash -c "sleep 5 && ./rust_api"
+# Necessaire pour le volume de la base de donnes
+volumes:
+  db:
+    driver: local
